@@ -10,11 +10,11 @@ import clickhouse_connect
 
 logger = logging.getLogger(__name__)
 
-def extract():
+def extract_stocks():
     try:
         logger.info('Извлечение данных с MOEX')
 
-        url = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json'
+        url = 'https://iss.moex.com/iss/engines/stock/markets/shares/securities.json'
 
         params = {
             'iss.meta': 'off'
@@ -43,10 +43,10 @@ def extract():
         logger.error(f'Не удалось извлечь данные, ошибка: {e}')
         raise
 
-def transform(**context):
+def transform_stocks(**context):
     logger.info('Преобразование данных')
     ti = context['ti']
-    df_trans = ti.xcom_pull(task_ids='extract')
+    df_trans = ti.xcom_pull(task_ids='extract_stocks')
 
     df_trans = df_trans.reindex(columns=['SECID', 'BOARDID_x', 'PREVPRICE',
                                          'SHORTNAME', 'SECNAME',
@@ -56,7 +56,7 @@ def transform(**context):
     numeric_columns = ['PREVPRICE', 'LOTSIZE', 'LAST', 'OPEN', 'LOW', 'HIGH']
 
     for col in numeric_columns:
-        if pd.api.types.is_numeric_dtype(df_trans[col]) == False:
+        if not pd.api.types.is_numeric_dtype(df_trans[col]):
             df_trans.astype(float)
 
     df_trans = df_trans.dropna()
@@ -65,11 +65,10 @@ def transform(**context):
 
     return df_trans
 
-def load(**context):
+def load_stocks(**context):
     try:
-        logger.info('Преобразование данных')
         ti = context['ti']
-        df = ti.xcom_pull(task_ids='transform')
+        df = ti.xcom_pull(task_ids='transform_stocks')
 
 
         logger.info('Загрузка данных в Clickhouse')
@@ -100,20 +99,20 @@ def load(**context):
         logger.error(f'Ошибка при загрузке данных: {e}')
 
 with DAG(
-        'etl_moex_dag',
+        'etl_moex_stocks_dag',
         start_date=datetime(2024, 1, 1),
         schedule=timedelta(hours=1),
 ) as dag:
     extract_task = PythonOperator(
-        task_id='extract',
-        python_callable=extract,
+        task_id='extract_stocks',
+        python_callable=extract_stocks,
     )
     transform_task = PythonOperator(
-        task_id='transform',
-        python_callable=transform,
+        task_id='transform_stocks',
+        python_callable=transform_stocks,
     )
     load_task = PythonOperator(
-        task_id='load',
-        python_callable=load,
+        task_id='load_stocks',
+        python_callable=load_stocks,
     )
 extract_task >> transform_task >> load_task
