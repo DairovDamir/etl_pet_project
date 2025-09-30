@@ -89,6 +89,8 @@ def load(**context):
         client = clickhouse_connect.get_client(host='clickhouse', port=8123, username='admin',
                                                password='password', database='analytics')
 
+        client.command('TRUNCATE TABLE analytics.moex')
+
         client.insert_df(df = df, table = 'moex', database='analytics')
 
         logger.info('Загрузка завершена')
