@@ -12,11 +12,11 @@
 
 #### Обработка и загрузка данных:
 
-- Pandas языка Python для выгрузки и трансформации с данными
+- Pandas языка Python для выгрузки и трансформации данных
 - Clickhouse-client на Python для загрузки данных в Clickhouse
 
 #### Хранилище данных:
-- Clickhouse - колоночная аналитиическая СУБД
+- Clickhouse - колоночная аналитическая СУБД
 
 #### Оркестрация и инфраструктура:
 - Apache Airflow - платформа управления обработкой данных, использовалась для оркестрации ETL пайплайна
@@ -24,8 +24,10 @@
 
 ## Структура данных в таблице:
 
+#### Витрина акций:
+
 ``` sql
-CREATE TABLE analytics.moex
+CREATE TABLE IF NOT EXISTS analytics.moex
 (
 	SECID String,
     BOARDID_x String,
@@ -38,6 +40,27 @@ CREATE TABLE analytics.moex
     LOW Float64,
     HIGH Float64,
     extracted_at DateTime DEFAULT now()
-)
-ENGINE = MergeTree()
+) ENGINE = MergeTree()
 ORDER BY (SECID, extracted_at)
+```
+
+#### Витрина облигаций:
+
+``` sql
+CREATE TABLE IF NOT EXISTS analytics.moex_bonds 
+(
+    SECID String,
+    BOARDID_x String,
+    PREVPRICE Float64,
+    SHORTNAME String,
+    SECNAME String,
+    LAST Float64,
+    YIELD Float64,
+    MATDATE Date,
+    OPEN Float64,
+    HIGH Float64,
+    LOW Float64,
+    extracted_at DateTime DEFAULT now()
+) ENGINE = MergeTree()
+ORDER BY (SECID, extracted_at)
+```
